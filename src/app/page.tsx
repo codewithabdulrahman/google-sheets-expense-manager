@@ -43,7 +43,7 @@ export default function Home() {
           setSpreadsheetId("");
           signOut();
         }}
-        user={session.user}
+        user={session.user!}
       />
       
       {currentState === 'create-sheet' && (

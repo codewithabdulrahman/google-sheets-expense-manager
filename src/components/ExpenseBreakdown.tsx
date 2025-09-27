@@ -3,7 +3,7 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
-interface BreakdownItem {
+interface BreakdownItem extends Record<string, unknown> {
   name: string;
   value: number;
   amount: number;

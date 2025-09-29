@@ -1,17 +1,22 @@
-// components/SpreadsheetCreator.tsx (Updated)
+// components/SpreadsheetCreator.tsx
 'use client';
 
 import { useState } from 'react';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ExternalLink } from 'lucide-react';
 
 interface SpreadsheetCreatorProps {
-  onSheetCreated: (spreadsheetId: string) => void;
-  onBack: () => void;
+  onSheetCreated: (spreadsheetId: string, spreadsheetName: string) => void;
+  showBackButton?: boolean;
+  onBack?: () => void;
 }
 
-const SpreadsheetCreator = ({ onSheetCreated, onBack }: SpreadsheetCreatorProps) => {
+const SpreadsheetCreator = ({ 
+  onSheetCreated, 
+  showBackButton = true, 
+  onBack 
+}: SpreadsheetCreatorProps) => {
   const [isCreating, setIsCreating] = useState(false);
-  const [sheetName, setSheetName] = useState('Company Expenses - FY 2024-25');
+  const [sheetName, setSheetName] = useState('');
   const [error, setError] = useState('');
 
   const createSpreadsheet = async () => {
@@ -38,10 +43,11 @@ const SpreadsheetCreator = ({ onSheetCreated, onBack }: SpreadsheetCreatorProps)
         throw new Error(data.error || 'Failed to create spreadsheet');
       }
 
-      // Initialize with EMPTY template structure only
+      // Initialize with template structure
       await initializeSpreadsheetTemplate(data.id);
       
-      onSheetCreated(data.id);
+      // Return to dashboard - spreadsheet will auto-open
+      onSheetCreated(data.id, sheetName);
     } catch (err: any) {
       setError(err.message || 'Failed to create spreadsheet');
     } finally {
@@ -50,22 +56,19 @@ const SpreadsheetCreator = ({ onSheetCreated, onBack }: SpreadsheetCreatorProps)
   };
 
   const initializeSpreadsheetTemplate = async (spreadsheetId: string) => {
-    // Create ONLY headers - no sample data
     const headers = [
       ['Month', 'Total Expenses', 'Dep.on Motor Car', 'Dep.on Plank Machinery-1', 'Dep.on Building', 'Assembling Charges', 'Transportation & Packaging', 'Interest on Bank Loan', 'Troughs & Conveyance', 'Dep.on Computers & Printers', 'Professional & Consultancy Charges', 'Others', 'Notes']
     ];
 
-    // Additional instructions row
     const instructions = [
       ['INSTRUCTIONS:', 'Enter actual expense amounts in respective columns', '', '', '', '', '', '', '', '', '', '', '']
     ];
 
-    // Example format row (optional - can be removed)
     const exampleFormat = [
       ['Format Example:', '1500000', '350000', '300000', '180000', '120000', '90000', '70000', '50000', '35000', '25000', '120000', 'May 2024 expenses']
     ];
 
-    const values = [...headers, ...instructions, [''] /* empty row */, exampleFormat];
+    const values = [...headers, ...instructions, [''], exampleFormat];
 
     await fetch('/api/sheets/append', {
       method: 'POST',
@@ -81,16 +84,11 @@ const SpreadsheetCreator = ({ onSheetCreated, onBack }: SpreadsheetCreatorProps)
   };
 
   return (
-    <div className="container mx-auto px-6 py-8">
-      <div className="bg-white rounded-lg shadow-md p-8 max-w-2xl mx-auto">
-        <div className="flex items-center mb-6">
-          <button
-            onClick={onBack}
-            className="flex items-center text-gray-600 hover:text-gray-900 mr-4"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <h2 className="text-2xl font-bold text-gray-900">Setup Expense Tracking</h2>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
+      <div className="bg-white rounded-lg shadow-md p-8 max-w-2xl w-full">
+        {/* SIMPLIFIED HEADER - No back button at all */}
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 text-center">Create Expense Spreadsheet</h2>
         </div>
 
         <div className="space-y-6">
@@ -108,23 +106,16 @@ const SpreadsheetCreator = ({ onSheetCreated, onBack }: SpreadsheetCreatorProps)
             />
           </div>
 
-          <div className="bg-green-50 p-4 rounded-lg">
-            <h3 className="font-medium text-green-900 mb-2">📊 Ready for Real Data</h3>
-            <ul className="text-sm text-green-800 list-disc list-inside space-y-1">
-              <li>Empty template with proper expense categories</li>
-              <li>Enter your actual company expense data</li>
-              <li>Dashboard updates automatically</li>
-              <li>Financial year-wise tracking</li>
-            </ul>
-          </div>
-
-          <div className="bg-yellow-50 p-4 rounded-lg">
-            <h3 className="font-medium text-yellow-900 mb-2">📝 Next Steps:</h3>
-            <ol className="text-sm text-yellow-800 list-decimal list-inside space-y-1">
-              <li>Create spreadsheet template</li>
-              <li>Go to Google Sheets and enter your actual expense data</li>
-              <li>Return to dashboard to view analytics</li>
-              <li>Data syncs automatically</li>
+          <div className="bg-blue-50 p-4 rounded-lg">
+            <h3 className="font-medium text-blue-900 mb-2 flex items-center">
+              <ExternalLink className="mr-2" size={16} />
+              What happens next?
+            </h3>
+            <ol className="text-sm text-blue-800 list-decimal list-inside space-y-1">
+              <li>We'll create a new Google Sheet with expense categories</li>
+              <li>Sheet will open automatically in a new tab</li>
+              <li>Enter your company expense data in the sheet</li>
+              <li>Return here to see your dashboard with live analytics</li>
             </ol>
           </div>
 
@@ -138,24 +129,22 @@ const SpreadsheetCreator = ({ onSheetCreated, onBack }: SpreadsheetCreatorProps)
             <button
               onClick={createSpreadsheet}
               disabled={isCreating}
-              className="flex items-center justify-center bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex-1"
             >
               {isCreating ? (
                 <>
                   <Loader2 className="animate-spin mr-2" size={20} />
-                  Creating Template...
+                  Creating Spreadsheet...
                 </>
               ) : (
-                'Create Expense Template'
+                <>
+                  <ExternalLink className="mr-2" size={20} />
+                  Create Spreadsheet
+                </>
               )}
             </button>
             
-            <button
-              onClick={onBack}
-              className="border border-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-50 transition-colors font-medium"
-            >
-              Cancel
-            </button>
+            {/* No Cancel button at all when showBackButton is false */}
           </div>
         </div>
       </div>

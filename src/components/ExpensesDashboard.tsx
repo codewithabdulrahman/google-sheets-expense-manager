@@ -62,21 +62,24 @@ const ExpensesDashboard = ({ spreadsheetId }: ExpensesDashboardProps) => {
       setLoading(false);
     }
   };
-
-  const transformRealData = (values: string[][]): ExpenseData[] => {
+const transformRealData = (values: string[][]): ExpenseData[] => {
   if (values.length === 0) return [];
 
   return values
-    .filter(row => row.length >= 2 && row[0] && row[1]) // Only rows with month and amount
+    .filter(row => row.length >= 2 && row[0] && row[1])
     .map(row => {
-      const month = row[0] || '';
+      const month = row[0]?.trim() || '';
       
-      // Remove $ and commas, then convert to number
-      const expenses = parseFloat(
-        (row[1] || '0')
-          .replace(/\$/g, '')    // Remove dollar signs
-          .replace(/,/g, '')     // Remove commas
-      );
+      // Handle different number formats more robustly
+      let expensesValue = row[1]?.toString() || '0';
+      
+      // Remove currency symbols, commas, spaces and convert to number
+      expensesValue = expensesValue
+        .replace(/[₹$,]/g, '')  // Remove ₹, $, and commas
+        .replace(/\s+/g, '')   // Remove spaces
+        .replace(/[^\d.-]/g, ''); // Remove any other non-numeric characters except . and -
+      
+      const expenses = parseFloat(expensesValue) || 0;
       
       const categories: { [key: string]: number } = {};
       const categoryNames = [
@@ -87,16 +90,26 @@ const ExpensesDashboard = ({ spreadsheetId }: ExpensesDashboardProps) => {
       ];
 
       categoryNames.forEach((name, index) => {
-        categories[name] = parseFloat(
-          (row[index + 2] || '0')
-            .replace(/\$/g, '')    // Remove dollar signs
-            .replace(/,/g, '')     // Remove commas
-        );
+        let categoryValue = row[index + 2]?.toString() || '0';
+        categoryValue = categoryValue
+          .replace(/[₹$,]/g, '')
+          .replace(/\s+/g, '')
+          .replace(/[^\d.-]/g, '');
+        categories[name] = parseFloat(categoryValue) || 0;
       });
 
       return { month, expenses, categories };
     })
-    .filter(item => !isNaN(item.expenses) && item.expenses > 0); // Filter out invalid numbers
+    .filter(item => !isNaN(item.expenses) && item.expenses > 0)
+    .sort((a, b) => {
+      // Sort by month if possible, otherwise keep original order
+      const monthOrder = ['January', 'February', 'March', 'April', 'May', 'June', 
+                         'July', 'August', 'September', 'October', 'November', 'December'];
+      const aIndex = monthOrder.indexOf(a.month);
+      const bIndex = monthOrder.indexOf(b.month);
+      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
+      return 0;
+    });
 };
 
   const openSpreadsheet = () => {
@@ -136,65 +149,65 @@ const ExpensesDashboard = ({ spreadsheetId }: ExpensesDashboardProps) => {
     );
   }
 
-  if (!hasData) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="mb-6">
-          <div className="flex justify-between items-center mb-2">
-            <h1 className="text-2xl font-bold text-gray-900">Expense-Manager-Beta </h1>
-            <button
-              onClick={openSpreadsheet}
-              className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
-            >
-              <Edit3 size={16} />
-              ENTER EXPENSE DATA
-            </button>
-          </div>
-        </div>
+  // if (!hasData) {
+  //   return (
+  //     <div className="min-h-screen bg-gray-50 p-6">
+  //       <div className="mb-6">
+  //         <div className="flex justify-between items-center mb-2">
+  //           <h1 className="text-2xl font-bold text-gray-900">Expense-Manager-Beta </h1>
+  //           <button
+  //             onClick={openSpreadsheet}
+  //             className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700"
+  //           >
+  //             <Edit3 size={16} />
+  //             ENTER EXPENSE DATA
+  //           </button>
+  //         </div>
+  //       </div>
 
-        <div className="bg-white rounded-lg shadow-md p-8 max-w-4xl mx-auto">
-          <div className="text-center">
-            <div className="bg-yellow-50 inline-flex p-4 rounded-full mb-4">
-              <Edit3 className="text-yellow-600" size={48} />
-            </div>
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to Start Tracking Expenses</h2>
-            <p className="text-gray-600 mb-6">
-              Your expense template is ready! Click the button below to start entering your company's financial data.
-            </p>
+  //       <div className="bg-white rounded-lg shadow-md p-8 max-w-4xl mx-auto">
+  //         <div className="text-center">
+  //           <div className="bg-yellow-50 inline-flex p-4 rounded-full mb-4">
+  //             <Edit3 className="text-yellow-600" size={48} />
+  //           </div>
+  //           <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to Start Tracking Expenses</h2>
+  //           <p className="text-gray-600 mb-6">
+  //             Your expense template is ready! Click the button below to start entering your company's financial data.
+  //           </p>
             
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-blue-900 mb-2">📊 How to Get Started:</h3>
-                <ol className="text-sm text-blue-800 list-decimal list-inside space-y-1 text-left">
-                  <li>Click "ENTER EXPENSE DATA" button</li>
-                  <li>Enter monthly expenses in Google Sheets</li>
-                  <li>Save the spreadsheet</li>
-                  <li>Return here to view analytics</li>
-                </ol>
-              </div>
+  //           <div className="grid md:grid-cols-2 gap-6 mb-8">
+  //             <div className="bg-blue-50 p-4 rounded-lg">
+  //               <h3 className="font-semibold text-blue-900 mb-2">📊 How to Get Started:</h3>
+  //               <ol className="text-sm text-blue-800 list-decimal list-inside space-y-1 text-left">
+  //                 <li>Click "ENTER EXPENSE DATA" button</li>
+  //                 <li>Enter monthly expenses in Google Sheets</li>
+  //                 <li>Save the spreadsheet</li>
+  //                 <li>Return here to view analytics</li>
+  //               </ol>
+  //             </div>
               
-              <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-green-900 mb-2">💡 Pro Tips:</h3>
-                <ul className="text-sm text-green-800 list-disc list-inside space-y-1 text-left">
-                  <li>Enter data month-wise for best results</li>
-                  <li>Include all expense categories</li>
-                  <li>Dashboard updates automatically</li>
-                  <li>Data is secure in your Google Drive</li>
-                </ul>
-              </div>
-            </div>
+  //             <div className="bg-green-50 p-4 rounded-lg">
+  //               <h3 className="font-semibold text-green-900 mb-2">💡 Pro Tips:</h3>
+  //               <ul className="text-sm text-green-800 list-disc list-inside space-y-1 text-left">
+  //                 <li>Enter data month-wise for best results</li>
+  //                 <li>Include all expense categories</li>
+  //                 <li>Dashboard updates automatically</li>
+  //                 <li>Data is secure in your Google Drive</li>
+  //               </ul>
+  //             </div>
+  //           </div>
 
-            <button
-              onClick={openSpreadsheet}
-              className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 font-medium text-lg"
-            >
-              Open Google Sheets to Enter Data
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  //           <button
+  //             onClick={openSpreadsheet}
+  //             className="bg-green-600 text-white px-8 py-3 rounded-lg hover:bg-green-700 font-medium text-lg"
+  //           >
+  //             Open Google Sheets to Enter Data
+  //           </button>
+  //         </div>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   // Calculate analytics from real data
   const breakdownData = calculateBreakdownData();
